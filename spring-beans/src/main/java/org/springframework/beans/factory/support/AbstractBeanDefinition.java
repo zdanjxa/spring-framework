@@ -1096,7 +1096,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	 * @throws BeanDefinitionValidationException in case of validation failure
 	 */
 	public void prepareMethodOverrides() throws BeanDefinitionValidationException {
-		// Check that lookup methods exists.
+		//检查 lookup 方法是否存在
 		if (hasMethodOverrides()) {
 			Set<MethodOverride> overrides = getMethodOverrides().getOverrides();
 			synchronized (overrides) {
@@ -1115,14 +1115,15 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	 * @throws BeanDefinitionValidationException in case of validation failure
 	 */
 	protected void prepareMethodOverride(MethodOverride mo) throws BeanDefinitionValidationException {
+		//检查mo对应的方法名存在多少个
 		int count = ClassUtils.getMethodCountForName(getBeanClass(), mo.getMethodName());
-		if (count == 0) {
+		if (count == 0) {//不存在此方法
 			throw new BeanDefinitionValidationException(
 					"Invalid method override: no method with name '" + mo.getMethodName() +
 					"' on class [" + getBeanClassName() + "]");
 		}
 		else if (count == 1) {
-			// Mark override as not overloaded, to avoid the overhead of arg type checking.
+			//只有一个此方法时，标识方法不重载 overloaded(在使用 CGLIB 增强阶段就不需要进行校验，直接找到某个方法进行增强即可)
 			mo.setOverloaded(false);
 		}
 	}
