@@ -72,6 +72,7 @@ public abstract class BeanFactoryUtils {
 	}
 
 	/**
+	 * 根据name获取最终的bean name(如果&开头，则表示要获取FactoryBean的当前bean(非&的FactoryBean调用时则返回工厂方法getObject()返回的实例))
 	 * Return the actual bean name, stripping out the factory dereference
 	 * prefix (if any, also stripping repeated factory prefixes if found).
 	 * @param name the name of the bean

@@ -88,16 +88,19 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 	 * Obtain an object to expose from the given FactoryBean.
 	 * @param factory the FactoryBean instance
 	 * @param beanName the name of the bean
-	 * @param shouldPostProcess whether the bean is subject to post-processing
+	 * @param shouldPostProcess 是否应用后置处理( post-processing)
 	 * @return the object obtained from the FactoryBean
 	 * @throws BeanCreationException if FactoryBean object creation failed
 	 * @see org.springframework.beans.factory.FactoryBean#getObject()
 	 */
 	protected Object getObjectFromFactoryBean(FactoryBean<?> factory, String beanName, boolean shouldPostProcess) {
+		//如果此FactoryBean是单例工厂
 		if (factory.isSingleton() && containsSingleton(beanName)) {
 			synchronized (getSingletonMutex()) {
+				//缓存获取bean实例
 				Object object = this.factoryBeanObjectCache.get(beanName);
 				if (object == null) {
+					//使用工厂对象创建bean
 					object = doGetObjectFromFactoryBean(factory, beanName);
 					// Only post-process and store if not put there already during getObject() call above
 					// (e.g. because of circular reference processing triggered by custom getBean calls)
@@ -111,20 +114,20 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 								// Temporarily return non-post-processed object, not storing it yet..
 								return object;
 							}
-							beforeSingletonCreation(beanName);
+							beforeSingletonCreation(beanName);//前置处理
 							try {
-								object = postProcessObjectFromFactoryBean(object, beanName);
+								object = postProcessObjectFromFactoryBean(object, beanName);//后置处理
 							}
 							catch (Throwable ex) {
 								throw new BeanCreationException(beanName,
 										"Post-processing of FactoryBean's singleton object failed", ex);
 							}
 							finally {
-								afterSingletonCreation(beanName);
+								afterSingletonCreation(beanName);//创建后置处理
 							}
 						}
 						if (containsSingleton(beanName)) {
-							this.factoryBeanObjectCache.put(beanName, object);
+							this.factoryBeanObjectCache.put(beanName, object);//加入缓存
 						}
 					}
 				}
@@ -132,10 +135,10 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 			}
 		}
 		else {
-			Object object = doGetObjectFromFactoryBean(factory, beanName);
+			Object object = doGetObjectFromFactoryBean(factory, beanName);//从工厂获取实例
 			if (shouldPostProcess) {
 				try {
-					object = postProcessObjectFromFactoryBean(object, beanName);
+					object = postProcessObjectFromFactoryBean(object, beanName);//后置处理
 				}
 				catch (Throwable ex) {
 					throw new BeanCreationException(beanName, "Post-processing of FactoryBean's object failed", ex);
@@ -168,7 +171,7 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 				}
 			}
 			else {
-				object = factory.getObject();
+				object = factory.getObject();//工厂方法生产
 			}
 		}
 		catch (FactoryBeanNotInitializedException ex) {
