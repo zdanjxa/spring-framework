@@ -169,7 +169,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	/** Names of beans that have already been created at least once. */
 	private final Set<String> alreadyCreated = Collections.newSetFromMap(new ConcurrentHashMap<>(256));
 
-	/** Names of beans that are currently in creation. */
+	/** 当前创建的bean name. */
 	private final ThreadLocal<Object> prototypesCurrentlyInCreation =
 			new NamedThreadLocal<>("Prototype beans currently in creation");
 
@@ -225,15 +225,11 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	}
 
 	/**
-	 * Return an instance, which may be shared or independent, of the specified bean.
-	 * @param name the name of the bean to retrieve
-	 * @param requiredType the required type of the bean to retrieve
-	 * @param args arguments to use when creating a bean instance using explicit arguments
-	 * (only applied when creating a new instance as opposed to retrieving an existing one)
-	 * @param typeCheckOnly whether the instance is obtained for a type check,
-	 * not for actual use
-	 * @return an instance of the bean
-	 * @throws BeansException if the bean could not be created
+	 * 获取bean
+	 * @param 要获取的bean的名字
+	 * @param 需要返回的类型
+	 * @param 构造参数(只有在创建bena的过程中使用)
+	 * @param 类型检查
 	 */
 	@SuppressWarnings("unchecked")
 	protected <T> T doGetBean(final String name, @Nullable final Class<T> requiredType,
@@ -1051,6 +1047,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 * @param beanName the name of the bean
 	 */
 	protected boolean isPrototypeCurrentlyInCreation(String beanName) {
+		//Prototype模式的则是从 ThreadLocal 中的当前线程获取数据(如果匹配name)
 		Object curVal = this.prototypesCurrentlyInCreation.get();
 		return (curVal != null &&
 				(curVal.equals(beanName) || (curVal instanceof Set && ((Set<?>) curVal).contains(beanName))));
@@ -1065,26 +1062,23 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	@SuppressWarnings("unchecked")
 	protected void beforePrototypeCreation(String beanName) {
 		Object curVal = this.prototypesCurrentlyInCreation.get();
-		if (curVal == null) {
+		if (curVal == null) {//当前没有创建的bean，赋值
 			this.prototypesCurrentlyInCreation.set(beanName);
 		}
-		else if (curVal instanceof String) {
+		else if (curVal instanceof String) {//如果已存在值，则转为Set集合，赋值
 			Set<String> beanNameSet = new HashSet<>(2);
 			beanNameSet.add((String) curVal);
 			beanNameSet.add(beanName);
 			this.prototypesCurrentlyInCreation.set(beanNameSet);
 		}
-		else {
+		else {//直接强转为Set，赋值
 			Set<String> beanNameSet = (Set<String>) curVal;
 			beanNameSet.add(beanName);
 		}
 	}
 
 	/**
-	 * Callback after prototype creation.
-	 * <p>The default implementation marks the prototype as not in creation anymore.
-	 * @param beanName the name of the prototype that has been created
-	 * @see #isPrototypeCurrentlyInCreation
+	 * 加载后置处理(此处为创建bean完成后清空当前ThreadLocal里的bean name)
 	 */
 	@SuppressWarnings("unchecked")
 	protected void afterPrototypeCreation(String beanName) {
@@ -1785,8 +1779,8 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 * if the bean definition cannot be resolved
 	 * @throws BeansException in case of errors
 	 * @see RootBeanDefinition
-	 * @see ChildBeanDefinition
-	 * @see org.springframework.beans.factory.config.ConfigurableListableBeanFactory#getBeanDefinition
+	 * @see ChildBeanDefinitiont
+	 * @see org.springframework.bans.factory.config.ConfigurableListableBeanFactory#getBeanDefinition
 	 */
 	protected abstract BeanDefinition getBeanDefinition(String beanName) throws BeansException;
 

@@ -425,6 +425,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			throws BeansException {
 
 		Object result = existingBean;
+		//依次BeanPostProcessor处理
 		for (BeanPostProcessor processor : getBeanPostProcessors()) {
 			Object current = processor.postProcessAfterInitialization(result, beanName);
 			if (current == null) {
@@ -581,7 +582,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 				logger.trace("Eagerly caching bean '" + beanName +
 						"' to allow for resolving potential circular references");
 			}
-			// 添加工厂对象到 singletonFactories 缓存中
+			// 添加工厂对象到 singletonFactories 缓存中(处理循环引用)
 			addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));//getEarlyBeanReference 获取早期 bean 的引用，如果 bean 中的方法被 AOP 切点所匹配到，此时 AOP 相关逻辑会介入
 		}
 
@@ -1100,7 +1101,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
 				Class<?> targetType = determineTargetType(beanName, mbd);
 				if (targetType != null) {
-					bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);//bean前置处理
+					bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);//bean前置处理(AOP InstantiationAwareBeanPostProcessor)
 					if (bean != null) {
 						bean = applyBeanPostProcessorsAfterInitialization(bean, beanName);//bean后置处理
 					}
@@ -1209,12 +1210,10 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	}
 
 	/**
-	 * Obtain a bean instance from the given supplier.
-	 * @param instanceSupplier the configured supplier
-	 * @param beanName the corresponding bean name
-	 * @return a BeanWrapper for the new instance
-	 * @since 5.0
-	 * @see #getObjectForBeanInstance
+	 * 调用Supplier#get()获取实例，然后将实例包装成BeanWrapper
+	 * @param instanceSupplier
+	 * @param beanName
+	 * @return
 	 */
 	protected BeanWrapper obtainFromSupplier(Supplier<?> instanceSupplier, String beanName) {
 		Object instance;
@@ -1303,8 +1302,10 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 						getAccessControlContext());
 			}
 			else {
+				// 获得 InstantiationStrategy 对象，并使用它，创建 Bean 对象
 				beanInstance = getInstantiationStrategy().instantiate(mbd, beanName, parent);
 			}
+			// 封装 BeanWrapperImpl  并完成初始化
 			BeanWrapper bw = new BeanWrapperImpl(beanInstance);
 			initBeanWrapper(bw);
 			return bw;

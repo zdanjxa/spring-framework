@@ -53,7 +53,7 @@ public abstract class BeanFactoryUtils {
 	public static final String GENERATED_BEAN_NAME_SEPARATOR = "#";
 
 	/**
-	 * Cache from name with factory bean prefix to stripped name without dereference.
+	 * 缓存 {@link #transformedBeanName(String)} 已经转换好的结果。
 	 * @since 5.1
 	 * @see BeanFactory#FACTORY_BEAN_PREFIX
 	 */
@@ -84,6 +84,7 @@ public abstract class BeanFactoryUtils {
 		if (!name.startsWith(BeanFactory.FACTORY_BEAN_PREFIX)) {
 			return name;
 		}
+		//transformedBeanNameCache包含name则直接返回，否则调用Function后加入map中
 		return transformedBeanNameCache.computeIfAbsent(name, beanName -> {
 			do {
 				beanName = beanName.substring(BeanFactory.FACTORY_BEAN_PREFIX.length());

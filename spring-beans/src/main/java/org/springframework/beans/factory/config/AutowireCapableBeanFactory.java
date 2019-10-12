@@ -96,7 +96,7 @@ public interface AutowireCapableBeanFactory extends BeanFactory {
 	 */
 	int AUTOWIRE_CONSTRUCTOR = 3;
 
-	/**
+	/**instantiateUsingFactoryMethod
 	 * Constant that indicates determining an appropriate autowire strategy
 	 * through introspection of the bean class.
 	 * @see #createBean

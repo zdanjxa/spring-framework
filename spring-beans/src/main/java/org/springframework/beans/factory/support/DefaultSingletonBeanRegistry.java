@@ -86,7 +86,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	private final Set<String> singletonsCurrentlyInCreation =
 			Collections.newSetFromMap(new ConcurrentHashMap<>(16));
 
-	/** Names of beans currently excluded from in creation checks. */
+	/** 在创建bean中不需要被检查的bean name集合. */
 	private final Set<String> inCreationCheckExclusions =
 			Collections.newSetFromMap(new ConcurrentHashMap<>(16));
 
@@ -167,6 +167,9 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 
 	/**
 	 * 根据beanname获得单例bean
+	 * 1.从singletonObjects获取
+	 * 2.没有并且当前bean正在创建中，则从earlySingletonObjects获取
+	 * 3.没有并且允许提前获取bean引用，则从singletonFactories#getObject()获取，获取成功则移除生产工厂、将实例添加到earlySingletonObjects
 	 * @param beanName
 	 * @param allowEarlyReference 是否允许其它bean引用正则创建中的bean(用于解决循环引用)
 	 * @return the registered singleton object, or {@code null} if none found
@@ -200,7 +203,9 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 */
 	public Object getSingleton(String beanName, ObjectFactory<?> singletonFactory) {
 		Assert.notNull(beanName, "Bean name must not be null");
+		//全局加锁
 		synchronized (this.singletonObjects) {
+			//检查缓存中是否存在
 			Object singletonObject = this.singletonObjects.get(beanName);
 			if (singletonObject == null) {
 				if (this.singletonsCurrentlyInDestruction) {
@@ -211,6 +216,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				if (logger.isDebugEnabled()) {
 					logger.debug("Creating shared instance of singleton bean '" + beanName + "'");
 				}
+				//加载前置处理
 				beforeSingletonCreation(beanName);
 				boolean newSingleton = false;
 				boolean recordSuppressedExceptions = (this.suppressedExceptions == null);
@@ -218,7 +224,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					this.suppressedExceptions = new LinkedHashSet<>();
 				}
 				try {
-					singletonObject = singletonFactory.getObject();//调用工厂方法获取实例
+					singletonObject = singletonFactory.getObject();//调用工厂方法获取实例(实质就是调用singletonFactory参数中传入的createBean方法)
 					newSingleton = true;
 				}
 				catch (IllegalStateException ex) {
@@ -241,6 +247,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					if (recordSuppressedExceptions) {
 						this.suppressedExceptions = null;
 					}
+					//加载后置处理
 					afterSingletonCreation(beanName);
 				}
 				if (newSingleton) {//新实例添加缓存

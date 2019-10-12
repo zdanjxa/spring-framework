@@ -1120,7 +1120,7 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 		if (count == 0) {//不存在此方法
 			throw new BeanDefinitionValidationException(
 					"Invalid method override: no method with name '" + mo.getMethodName() +
-					"' on class [" + getBeanClassName() + "]");
+							"' on class [" + getBeanClassName() + "]");
 		}
 		else if (count == 1) {
 			//只有一个此方法时，标识方法不重载 overloaded(在使用 CGLIB 增强阶段就不需要进行校验，直接找到某个方法进行增强即可)
