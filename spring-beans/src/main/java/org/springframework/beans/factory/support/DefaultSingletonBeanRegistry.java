@@ -103,10 +103,10 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	/** Map between containing bean names: bean name to Set of bean names that the bean contains. */
 	private final Map<String, Set<String>> containedBeanMap = new ConcurrentHashMap<>(16);
 
-	/** Map between dependent bean names: bean name to Set of dependent bean names. */
+	/** bean的依赖映射(beanname:此beanname被引用的beanname集合) */
 	private final Map<String, Set<String>> dependentBeanMap = new ConcurrentHashMap<>(64);
 
-	/** Map between depending bean names: bean name to Set of bean names for the bean's dependencies. */
+	/** bean的依赖映射(beanname:此beanname所依赖beanname集合) */
 	private final Map<String, Set<String>> dependenciesForBeanMap = new ConcurrentHashMap<>(64);
 
 
@@ -403,9 +403,11 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 		String canonicalName = canonicalName(beanName);
 
 		synchronized (this.dependentBeanMap) {
+			//map.computeIfAbsent(key,obj)表示 map.get(key),如果null,则将obj存入map并返回
 			Set<String> dependentBeans =
 					this.dependentBeanMap.computeIfAbsent(canonicalName, k -> new LinkedHashSet<>(8));
-			if (!dependentBeans.add(dependentBeanName)) {//检查是否存在
+			//检查是否存在
+			if (!dependentBeans.add(dependentBeanName)) {
 				return;
 			}
 		}
@@ -413,7 +415,8 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 		synchronized (this.dependenciesForBeanMap) {
 			Set<String> dependenciesForBean =
 					this.dependenciesForBeanMap.computeIfAbsent(dependentBeanName, k -> new LinkedHashSet<>(8));
-			dependenciesForBean.add(canonicalName);//添加beanname
+			//添加beanname
+			dependenciesForBean.add(canonicalName);
 		}
 	}
 
@@ -434,14 +437,18 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 		if (alreadySeen != null && alreadySeen.contains(beanName)) {
 			return false;
 		}
+		//查询真实beanname(就是判断传入的beanName是否是别名)
 		String canonicalName = canonicalName(beanName);
 		Set<String> dependentBeans = this.dependentBeanMap.get(canonicalName);
+		//获取此beanname的所有依赖bean
 		if (dependentBeans == null) {
 			return false;
 		}
+		//如果包含则返回
 		if (dependentBeans.contains(dependentBeanName)) {
 			return true;
 		}
+		//循环检查所有的依赖bean里面是否有依赖bean(即递归式处理检测)
 		for (String transitiveDependency : dependentBeans) {
 			if (alreadySeen == null) {
 				alreadySeen = new HashSet<>();

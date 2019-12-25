@@ -166,7 +166,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	/** Map from bean name to merged RootBeanDefinition. */
 	private final Map<String, RootBeanDefinition> mergedBeanDefinitions = new ConcurrentHashMap<>(256);
 
-	/** Names of beans that have already been created at least once. */
+	/** 已创建bean的集合 */
 	private final Set<String> alreadyCreated = Collections.newSetFromMap(new ConcurrentHashMap<>(256));
 
 	/** 当前创建的bean name. */
@@ -275,9 +275,11 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 			// 尝试从父容器中查找
 			BeanFactory parentBeanFactory = getParentBeanFactory();
+			//parentBeanFactory 不为空且 beanDefinitionMap 中不存该 name 的 BeanDefinition
 			if (parentBeanFactory != null && !containsBeanDefinition(beanName)) {
-				// 获取 name 对应的 beanName，如果 name 是以 & 字符开头，则返回 & + beanName
+				// 确定原始beanname(如果 name 是以 & 字符开头，则返回 & + beanName）
 				String nameToLookup = originalBeanName(name);
+				//如果是抽象类型则委托给父类
 				if (parentBeanFactory instanceof AbstractBeanFactory) {
 					return ((AbstractBeanFactory) parentBeanFactory).doGetBean(
 							nameToLookup, requiredType, args, typeCheckOnly);
@@ -295,13 +297,15 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				}
 			}
 
+			//如果!typeCheckOnly则将bean标记为创建(typeCheckOnly表示是否为仅仅进行类型检查获取 Bean 对象，如果是创建bean的过程中则需要调用markBeanAsCreated)
 			if (!typeCheckOnly) {
 				markBeanAsCreated(beanName);
 			}
 
 			try {
-				// 合并父 BeanDefinition 与子 BeanDefinition，
+				//从容器中获取 beanName 相应的 GenericBeanDefinition 对象，并将其转换为 RootBeanDefinition 对象
 				final RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
+				// 检查给定的合并的 BeanDefinition
 				checkMergedBeanDefinition(mbd, beanName, args);
 
 				// 检查是否有depends on(即beanA需要beanB先定义)
@@ -335,6 +339,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 							return createBean(beanName, mbd, args);
 						}
 						catch (BeansException ex) {
+							//显式删除单例bean(因为单例下为了循环依赖,此bean已存在其它缓存中,但是创建此bean失败的，故移除)
 							destroySingleton(beanName);
 							throw ex;
 						}
@@ -1574,18 +1579,23 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	}
 
 	/**
+	 * 标记bean在创建中
 	 * Mark the specified bean as already created (or about to be created).
 	 * <p>This allows the bean factory to optimize its caching for repeated
 	 * creation of the specified bean.
 	 * @param beanName the name of the bean
 	 */
 	protected void markBeanAsCreated(String beanName) {
+		//没有创建
 		if (!this.alreadyCreated.contains(beanName)) {
+			//加锁
 			synchronized (this.mergedBeanDefinitions) {
 				if (!this.alreadyCreated.contains(beanName)) {
 					// Let the bean definition get re-merged now that we're actually creating
 					// the bean... just in case some of its metadata changed in the meantime.
+					// 从 mergedBeanDefinitions 中删除 beanName，并在下次访问时重新创建它。
 					clearMergedBeanDefinition(beanName);
+					//添加
 					this.alreadyCreated.add(beanName);
 				}
 			}

@@ -1461,7 +1461,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		String[] propertyNames = unsatisfiedNonSimpleProperties(mbd, bw);//获取非简单类型并且不在配置的值
 		for (String propertyName : propertyNames) {
 			if (containsBean(propertyName)) {//检测是否存在propertyName对应的bean
-				Object bean = getBean(propertyName);
+				Object bean = getBean(propertyName);//递归初始化相关bean
 				pvs.add(propertyName, bean);//添加到属性集
 				registerDependentBean(propertyName, beanName);//注册依赖bean缓存
 				if (logger.isTraceEnabled()) {
@@ -1501,15 +1501,19 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		String[] propertyNames = unsatisfiedNonSimpleProperties(mbd, bw);
 		for (String propertyName : propertyNames) {
 			try {
+				// 获取 PropertyDescriptor 实例
 				PropertyDescriptor pd = bw.getPropertyDescriptor(propertyName);
 
+				//对于Object.class类型，不进行处理(因为万物都可以认为是Object)
 				if (Object.class != pd.getPropertyType()) {
+					// 指定属性的 set 方法
 					MethodParameter methodParam = BeanUtils.getWriteMethodParameter(pd);
-					// Do not allow eager init for type matching in case of a prioritized post-processor.
+					//不允许实现PriorityOrdered接口的类进行提前初始化(Do not allow eager init for type matching in case of a prioritized post-processor.)
 					boolean eager = !PriorityOrdered.class.isInstance(bw.getWrappedInstance());
 					//依赖描述对象
 					DependencyDescriptor desc = new AutowireByTypeDependencyDescriptor(methodParam, eager);
-					//依赖解析
+					// 依赖解析,解析指定 beanName 的属性所匹配的值，并把解析到的属性名称存储在 autowiredBeanNames 中
+					// 当属性存在过个封装 bean 时将会找到所有匹配的 bean 并将其注入
 					Object autowiredArgument = resolveDependency(desc, beanName, autowiredBeanNames, converter);
 					if (autowiredArgument != null) {
 						pvs.add(propertyName, autowiredArgument);//添加到属性集
@@ -1543,6 +1547,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		PropertyValues pvs = mbd.getPropertyValues();
 		PropertyDescriptor[] pds = bw.getPropertyDescriptors();
 		for (PropertyDescriptor pd : pds) {
+			//可写 && 依赖检测中没有被忽略 && pvs 不包含该属性名 && 不是简单类型属性
 			if (pd.getWriteMethod() != null && !isExcludedFromDependencyCheck(pd) && !pvs.contains(pd.getName()) &&
 					!BeanUtils.isSimpleProperty(pd.getPropertyType())) {
 				result.add(pd.getName());
@@ -1685,9 +1690,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			if (pv.isConverted()) {//属性已类型转换
 				deepCopy.add(pv);
 			}
-			else {
+			else {//属性转换
 				String propertyName = pv.getName();
-				Object originalValue = pv.getValue();
+				Object originalValue = pv.getValue(); //原始值
 				Object resolvedValue = valueResolver.resolveValueIfNecessary(pv, originalValue);//解析属性值
 				Object convertedValue = resolvedValue;
 				boolean convertible = bw.isWritableProperty(propertyName) &&
@@ -1696,14 +1701,14 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 					convertedValue = convertForProperty(resolvedValue, propertyName, bw, converter);//类型转换
 				}
 
-				//如果 originalValue 是通过 autowireByType 或 autowireByName 解析而来
+				// 存储转换后的属性值，避免每次属性注入时的转换工作
 				if (resolvedValue == originalValue) {
 					if (convertible) {
 						pv.setConvertedValue(convertedValue);// 将 convertedValue 设置到 pv 中，后续再次创建同一个 bean 时，就无需再次进行转换了
 					}
 					deepCopy.add(pv);
 				}
-				//如果原始值 originalValue 是 TypedStringValue，且转换后的值 convertedValue 不是 Collection 或数组类型，则将转换后的值存入到 pv 中
+				//属性可转换，且原始值 originalValue 是 TypedStringValue，且属性的原始类型值不是动态生成的， 且转换后的值 convertedValue 不是 Collection 或数组类型，则将转换后的值存入到 pv 中
 				else if (convertible && originalValue instanceof TypedStringValue &&
 						!((TypedStringValue) originalValue).isDynamic() &&
 						!(convertedValue instanceof Collection || ObjectUtils.isArray(convertedValue))) {
@@ -1712,10 +1717,12 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 				}
 				else {
 					resolveNecessary = true;
+					//重新封装属性的值
 					deepCopy.add(new PropertyValue(pv, convertedValue));
 				}
 			}
 		}
+		//标记属性已转换
 		if (mpvs != null && !resolveNecessary) {
 			mpvs.setConverted();
 		}
