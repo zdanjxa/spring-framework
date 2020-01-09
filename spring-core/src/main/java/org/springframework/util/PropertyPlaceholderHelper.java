@@ -129,10 +129,13 @@ public class PropertyPlaceholderHelper {
 
 		StringBuilder result = new StringBuilder(value);
 
+		// 获取前缀 "${" 的索引位置
 		int startIndex = value.indexOf(this.placeholderPrefix);
 		while (startIndex != -1) {
+			// 获取 后缀 "}" 的索引位置
 			int endIndex = findPlaceholderEndIndex(result, startIndex);
 			if (endIndex != -1) {
+				// 截取 "${" 和 "}" 中间的内容，这也就是我们在配置文件中对应的key
 				String placeholder = result.substring(startIndex + this.placeholderPrefix.length(), endIndex);
 				String originalPlaceholder = placeholder;
 				if (!visitedPlaceholders.add(originalPlaceholder)) {
@@ -140,15 +143,23 @@ public class PropertyPlaceholderHelper {
 							"Circular placeholder reference '" + originalPlaceholder + "' in property definitions");
 				}
 				// Recursive invocation, parsing placeholders contained in the placeholder key.
+				// 递归解析占位符键中包含的占位符(因为可能是多重${}的引入,需要逐步解析得到最终的key)
 				placeholder = parseStringValue(placeholder, placeholderResolver, visitedPlaceholders);
 				// Now obtain the value for the fully resolved key...
+				// 尝试获取对应的value
 				String propVal = placeholderResolver.resolvePlaceholder(placeholder);
+				//如果value不存在
 				if (propVal == null && this.valueSeparator != null) {
+					//则判断 : 的索引位置
 					int separatorIndex = placeholder.indexOf(this.valueSeparator);
 					if (separatorIndex != -1) {
+						//截取得到真正的key
 						String actualPlaceholder = placeholder.substring(0, separatorIndex);
+						//获取:后面的默认值
 						String defaultValue = placeholder.substring(separatorIndex + this.valueSeparator.length());
+						//获取真正的key对应的value
 						propVal = placeholderResolver.resolvePlaceholder(actualPlaceholder);
+						//如果真正的key没有获取值，则赋予默认值
 						if (propVal == null) {
 							propVal = defaultValue;
 						}
@@ -157,18 +168,23 @@ public class PropertyPlaceholderHelper {
 				if (propVal != null) {
 					// Recursive invocation, parsing placeholders contained in the
 					// previously resolved placeholder value.
+					//与前面类似，递归解析获取到的value是最终结果,如果还是包含占位符，则继续处理
 					propVal = parseStringValue(propVal, placeholderResolver, visitedPlaceholders);
+					//值替换
 					result.replace(startIndex, endIndex + this.placeholderSuffix.length(), propVal);
 					if (logger.isTraceEnabled()) {
 						logger.trace("Resolved placeholder '" + placeholder + "'");
 					}
+					//寻找下一个${}
 					startIndex = result.indexOf(this.placeholderPrefix, startIndex + propVal.length());
 				}
 				else if (this.ignoreUnresolvablePlaceholders) {
 					// Proceed with unprocessed value.
+					// 忽略,则继续寻找下一个${}
 					startIndex = result.indexOf(this.placeholderPrefix, endIndex + this.placeholderSuffix.length());
 				}
 				else {
+					//不允许忽略无法解析的${}则抛出异常
 					throw new IllegalArgumentException("Could not resolve placeholder '" +
 							placeholder + "'" + " in value \"" + value + "\"");
 				}

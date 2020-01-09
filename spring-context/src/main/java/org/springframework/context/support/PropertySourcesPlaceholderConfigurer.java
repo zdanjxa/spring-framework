@@ -36,10 +36,12 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringValueResolver;
 
 /**
+ * 解析bean定义、@Value中的${...}占位符
  * Specialization of {@link PlaceholderConfigurerSupport} that resolves ${...} placeholders
  * within bean definition property values and {@code @Value} annotations against the current
  * Spring {@link Environment} and its set of {@link PropertySources}.
  *
+ * 这个基于{@code PropertyPlaceholderConfigurer}设计成通用的替换类(默认支持 {@code property-placeholder}格式)
  * <p>This class is designed as a general replacement for {@code PropertyPlaceholderConfigurer}.
  * It is used by default to support the {@code property-placeholder} element in working against
  * the spring-context-3.1 or higher XSD; whereas, spring-context versions &lt;= 3.0 default to
@@ -127,8 +129,10 @@ public class PropertySourcesPlaceholderConfigurer extends PlaceholderConfigurerS
 	@Override
 	public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
 		if (this.propertySources == null) {
+			//创建一个properties属性源
 			this.propertySources = new MutablePropertySources();
 			if (this.environment != null) {
+				//添加环境属性到属性要底部
 				this.propertySources.addLast(
 					new PropertySource<Environment>(ENVIRONMENT_PROPERTIES_PROPERTY_SOURCE_NAME, this.environment) {
 						@Override
@@ -140,8 +144,10 @@ public class PropertySourcesPlaceholderConfigurer extends PlaceholderConfigurerS
 				);
 			}
 			try {
+				//获取本地属性
 				PropertySource<?> localPropertySource =
 						new PropertiesPropertySource(LOCAL_PROPERTIES_PROPERTY_SOURCE_NAME, mergeProperties());
+				//如果可以被覆写，则添加到属性源顶部，否则添加到底部
 				if (this.localOverride) {
 					this.propertySources.addFirst(localPropertySource);
 				}
@@ -154,6 +160,7 @@ public class PropertySourcesPlaceholderConfigurer extends PlaceholderConfigurerS
 			}
 		}
 
+		//处理properties的解析替换(构建PropertySourcesPropertyResolver来解析)
 		processProperties(beanFactory, new PropertySourcesPropertyResolver(this.propertySources));
 		this.appliedPropertySources = this.propertySources;
 	}
@@ -161,15 +168,20 @@ public class PropertySourcesPlaceholderConfigurer extends PlaceholderConfigurerS
 	/**
 	 * Visit each bean definition in the given bean factory and attempt to replace ${...} property
 	 * placeholders with values from the given properties.
+	 * 遍历所有的bean定义，并尝试替换${…}属性
+	 *
 	 */
 	protected void processProperties(ConfigurableListableBeanFactory beanFactoryToProcess,
 			final ConfigurablePropertyResolver propertyResolver) throws BeansException {
 
+		//设置解析器的前缀后缀，默认分割器;即${:}
 		propertyResolver.setPlaceholderPrefix(this.placeholderPrefix);
 		propertyResolver.setPlaceholderSuffix(this.placeholderSuffix);
 		propertyResolver.setValueSeparator(this.valueSeparator);
 
+		//实现StringValueResolver的字符串解析器提供给doProcessProperties使用
 		StringValueResolver valueResolver = strVal -> {
+			//解析占位符(可选是否忽略无法解析的占位符)
 			String resolved = (this.ignoreUnresolvablePlaceholders ?
 					propertyResolver.resolvePlaceholders(strVal) :
 					propertyResolver.resolveRequiredPlaceholders(strVal));
@@ -179,6 +191,7 @@ public class PropertySourcesPlaceholderConfigurer extends PlaceholderConfigurerS
 			return (resolved.equals(this.nullValue) ? null : resolved);
 		};
 
+		//解析
 		doProcessProperties(beanFactoryToProcess, valueResolver);
 	}
 

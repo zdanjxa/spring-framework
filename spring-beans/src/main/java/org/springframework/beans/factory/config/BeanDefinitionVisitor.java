@@ -70,6 +70,7 @@ public class BeanDefinitionVisitor {
 
 
 	/**
+	 * 读取ParentName、BeanClassName、FactoryBeanName、FactoryMethodName、Scope、PropertyValues、ConstructorArgument的值并进行解析替换
 	 * Traverse the given BeanDefinition object and the MutablePropertyValues
 	 * and ConstructorArgumentValues contained in them.
 	 * @param beanDefinition the BeanDefinition object to traverse
@@ -142,9 +143,12 @@ public class BeanDefinitionVisitor {
 	}
 
 	protected void visitPropertyValues(MutablePropertyValues pvs) {
+		//获取所有的属性值遍历
 		PropertyValue[] pvArray = pvs.getPropertyValues();
 		for (PropertyValue pv : pvArray) {
+			//解析
 			Object newVal = resolveValue(pv.getValue());
+			//判断是否需要替换
 			if (!ObjectUtils.nullSafeEquals(newVal, pv.getValue())) {
 				pvs.add(pv.getName(), newVal);
 			}
@@ -218,6 +222,7 @@ public class BeanDefinitionVisitor {
 				typedStringValue.setValue(visitedString);
 			}
 		}
+		//解析配置文件
 		else if (value instanceof String) {
 			return resolveStringValue((String) value);
 		}
