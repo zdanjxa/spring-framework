@@ -65,20 +65,21 @@ public class BeanFactoryAdvisorRetrievalHelper {
 	 * @see #isEligibleBean
 	 */
 	public List<Advisor> findAdvisorBeans() {
-		// Determine list of advisor bean names, if not cached already.
+		// 确定增强器bean名称列表
 		String[] advisorNames = this.cachedAdvisorBeanNames;
 		if (advisorNames == null) {
-			// Do not initialize FactoryBeans here: We need to leave all regular beans
-			// uninitialized to let the auto-proxy creator apply to them!
+			//不要在这里初始化FactoryBeans: 我们需要保留所有未初始化的常规bean以便自动代理创建(此处其实就是找到Advisor的bean)
 			advisorNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
 					this.beanFactory, Advisor.class, true, false);
 			this.cachedAdvisorBeanNames = advisorNames;
 		}
+		//如果未包含则返回
 		if (advisorNames.length == 0) {
 			return new ArrayList<>();
 		}
 
 		List<Advisor> advisors = new ArrayList<>();
+		//遍历
 		for (String name : advisorNames) {
 			if (isEligibleBean(name)) {
 				if (this.beanFactory.isCurrentlyInCreation(name)) {
@@ -88,6 +89,7 @@ public class BeanFactoryAdvisorRetrievalHelper {
 				}
 				else {
 					try {
+						// 利用getBean把增强器先创建出来
 						advisors.add(this.beanFactory.getBean(name, Advisor.class));
 					}
 					catch (BeanCreationException ex) {
@@ -95,6 +97,7 @@ public class BeanFactoryAdvisorRetrievalHelper {
 						if (rootCause instanceof BeanCurrentlyInCreationException) {
 							BeanCreationException bce = (BeanCreationException) rootCause;
 							String bceBeanName = bce.getBeanName();
+							// 这里可能引发循环依赖，如果这个增强器bean正在创建则continue
 							if (bceBeanName != null && this.beanFactory.isCurrentlyInCreation(bceBeanName)) {
 								if (logger.isTraceEnabled()) {
 									logger.trace("Skipping advisor '" + name +

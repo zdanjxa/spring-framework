@@ -81,6 +81,7 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 	 * @see #isEligibleBean
 	 */
 	public List<Advisor> buildAspectJAdvisors() {
+		//增强切面名称
 		List<String> aspectNames = this.aspectBeanNames;
 
 		if (aspectNames == null) {
@@ -89,33 +90,41 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 				if (aspectNames == null) {
 					List<Advisor> advisors = new ArrayList<>();
 					aspectNames = new ArrayList<>();
+					//获取IoC容器所有Bean
 					String[] beanNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
 							this.beanFactory, Object.class, true, false);
 					for (String beanName : beanNames) {
 						if (!isEligibleBean(beanName)) {
 							continue;
 						}
-						// We must be careful not to instantiate beans eagerly as in this case they
-						// would be cached by the Spring container but would not have been weaved.
+						// 我们必须小心，不能急于实例化bean， 因为在这种清空下IoC容器会缓存他们但不是被织入增强器
+						// (因为增强器可能还没创建，导致对象没有被代理)
 						Class<?> beanType = this.beanFactory.getType(beanName);
 						if (beanType == null) {
 							continue;
 						}
+						// 如果带@AspectJ注解,即该bean是一个切面类
 						if (this.advisorFactory.isAspect(beanType)) {
 							aspectNames.add(beanName);
+							// 包装@AspectJ的元数据
 							AspectMetadata amd = new AspectMetadata(beanType, beanName);
+							//使用单例创建切面类
 							if (amd.getAjType().getPerClause().getKind() == PerClauseKind.SINGLETON) {
 								MetadataAwareAspectInstanceFactory factory =
 										new BeanFactoryAspectInstanceFactory(this.beanFactory, beanName);
+								//得到该切面类下的所有增强器
 								List<Advisor> classAdvisors = this.advisorFactory.getAdvisors(factory);
+								//如果是单例则缓存所有增强器
 								if (this.beanFactory.isSingleton(beanName)) {
 									this.advisorsCache.put(beanName, classAdvisors);
 								}
+								//否则缓存factory，由工厂来创建增强器
 								else {
 									this.aspectFactoryCache.put(beanName, factory);
 								}
 								advisors.addAll(classAdvisors);
 							}
+							//直接构建工厂来创建增强器
 							else {
 								// Per target or per this.
 								if (this.beanFactory.isSingleton(beanName)) {
@@ -139,11 +148,13 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 			return Collections.emptyList();
 		}
 		List<Advisor> advisors = new ArrayList<>();
+		//遍历所有的切面beanname
 		for (String aspectName : aspectNames) {
 			List<Advisor> cachedAdvisors = this.advisorsCache.get(aspectName);
 			if (cachedAdvisors != null) {
 				advisors.addAll(cachedAdvisors);
 			}
+			// 获取不到时使用工厂获取增强器
 			else {
 				MetadataAwareAspectInstanceFactory factory = this.aspectFactoryCache.get(aspectName);
 				advisors.addAll(this.advisorFactory.getAdvisors(factory));

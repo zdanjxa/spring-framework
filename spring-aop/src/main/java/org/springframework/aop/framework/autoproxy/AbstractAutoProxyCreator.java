@@ -245,18 +245,18 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 		Object cacheKey = getCacheKey(beanClass, beanName);
 
 		if (!StringUtils.hasLength(beanName) || !this.targetSourcedBeans.contains(beanName)) {
+			// 判断该Bean是否已经被增强
 			if (this.advisedBeans.containsKey(cacheKey)) {
 				return null;
 			}
+			//判断是否为基础类型 或 是需要跳过增强的类
 			if (isInfrastructureClass(beanClass) || shouldSkip(beanClass, beanName)) {
 				this.advisedBeans.put(cacheKey, Boolean.FALSE);
 				return null;
 			}
 		}
 
-		// Create proxy here if we have a custom TargetSource.
-		// Suppresses unnecessary default instantiation of the target bean:
-		// The TargetSource will handle target instances in a custom fashion.
+		// 如果有自定义的TargetSource则在此创建代理(需要禁用目标bean的默认实例化，targetSource以自定义方式处理目标实例化)
 		TargetSource targetSource = getCustomTargetSource(beanClass, beanName);
 		if (targetSource != null) {
 			if (StringUtils.hasLength(beanName)) {
@@ -267,7 +267,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 			this.proxyTypes.put(cacheKey, proxy.getClass());
 			return proxy;
 		}
-
+		//否则直接返回null
 		return null;
 	}
 
@@ -343,7 +343,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 			return bean;
 		}
 
-		// Create proxy if we have advice.
+		// 如果需要增强则创建代理对象
 		Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
 		if (specificInterceptors != DO_NOT_PROXY) {
 			this.advisedBeans.put(cacheKey, Boolean.TRUE);
@@ -370,6 +370,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	 * @see #shouldSkip
 	 */
 	protected boolean isInfrastructureClass(Class<?> beanClass) {
+		// 子类还判断了是否带 @AspectJ注解
 		boolean retVal = Advice.class.isAssignableFrom(beanClass) ||
 				Pointcut.class.isAssignableFrom(beanClass) ||
 				Advisor.class.isAssignableFrom(beanClass) ||
@@ -397,6 +398,8 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	}
 
 	/**
+	 * 本身就是给单例Bean创建代理对象,结果要判断IoC容器中是否包含，自然是有没有的，直接返回null，这也导致了上层的
+	 * postProcessBeforeInstantiation 方法直接返回null
 	 * Create a target source for bean instances. Uses any TargetSourceCreators if set.
 	 * Returns {@code null} if no custom TargetSource should be used.
 	 * <p>This implementation uses the "customTargetSourceCreators" property.
@@ -446,7 +449,9 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 			AutoProxyUtils.exposeTargetClass((ConfigurableListableBeanFactory) this.beanFactory, beanName, beanClass);
 		}
 
+		// 创建代理工厂，使用它来创建代理对象
 		ProxyFactory proxyFactory = new ProxyFactory();
+		// 从当前执行的AbstractAutoProxyCreator中复制一些配置
 		proxyFactory.copyFrom(this);
 
 		if (!proxyFactory.isProxyTargetClass()) {
@@ -458,7 +463,9 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 			}
 		}
 
+		// 组合所有增强器
 		Advisor[] advisors = buildAdvisors(beanName, specificInterceptors);
+		// 将增强器加入代理工厂
 		proxyFactory.addAdvisors(advisors);
 		proxyFactory.setTargetSource(targetSource);
 		customizeProxyFactory(proxyFactory);
@@ -468,6 +475,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 			proxyFactory.setPreFiltered(true);
 		}
 
+		// 创建代理对象
 		return proxyFactory.getProxy(getProxyClassLoader());
 	}
 
@@ -513,6 +521,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 
 		List<Object> allInterceptors = new ArrayList<>();
 		if (specificInterceptors != null) {
+			// 把传入的增强器放入AOP拦截列表中
 			allInterceptors.addAll(Arrays.asList(specificInterceptors));
 			if (commonInterceptors.length > 0) {
 				if (this.applyCommonInterceptorsFirst) {
@@ -530,6 +539,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 					" common interceptors and " + nrOfSpecificInterceptors + " specific interceptors");
 		}
 
+		// 增强器对象转换为真正的Advisor增强器对象
 		Advisor[] advisors = new Advisor[allInterceptors.size()];
 		for (int i = 0; i < allInterceptors.size(); i++) {
 			advisors[i] = this.advisorAdapterRegistry.wrap(allInterceptors.get(i));
