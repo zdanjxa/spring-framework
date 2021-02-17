@@ -419,6 +419,9 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	@Nullable
 	protected TargetSource getCustomTargetSource(Class<?> beanClass, String beanName) {
 		// We can't create fancy target sources for directly registered singletons.
+		//遍历AbstractBeanFactoryBasedTargetSourceCreator获取TargetSourceCreator; Spring自带的只有QuickTargetSourceCreator、LazyInitTargetSourceCreator
+		// QuickTargetSourceCreator只有在beanName以 [: 、% 、!]这三种字符开头时才会返回对应的TargetSource
+		// LazyInitTargetSourceCreator 只有在此bean是延迟加载时才会返回 LazyInitTargetSource
 		if (this.customTargetSourceCreators != null &&
 				this.beanFactory != null && this.beanFactory.containsBean(beanName)) {
 			for (TargetSourceCreator tsc : this.customTargetSourceCreators) {
