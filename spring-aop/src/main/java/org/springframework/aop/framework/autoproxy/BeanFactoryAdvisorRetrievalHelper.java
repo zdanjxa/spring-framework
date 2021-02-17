@@ -59,6 +59,9 @@ public class BeanFactoryAdvisorRetrievalHelper {
 
 
 	/**
+	 * 查找所有{@link org.springframework.aop.Advisor}类型的bean;
+	 * 1. 从容器中查找所有类型为 Advisor 的 bean 对应的名称
+	 * 2. 遍历 advisorNames，并从容器中获取对应的 bean
 	 * Find all eligible Advisor beans in the current bean factory,
 	 * ignoring FactoryBeans and excluding beans that are currently in creation.
 	 * @return the list of {@link org.springframework.aop.Advisor} beans
@@ -68,7 +71,7 @@ public class BeanFactoryAdvisorRetrievalHelper {
 		// 确定增强器bean名称列表
 		String[] advisorNames = this.cachedAdvisorBeanNames;
 		if (advisorNames == null) {
-			//不要在这里初始化FactoryBeans: 我们需要保留所有未初始化的常规bean以便自动代理创建(此处其实就是找到Advisor的bean)
+			//不要在这里初始化FactoryBeans: 我们需要保留所有未初始化的常规bean以便自动代理创建(此处其实就是找到Advisor的bean),即交给getBean处理
 			advisorNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
 					this.beanFactory, Advisor.class, true, false);
 			this.cachedAdvisorBeanNames = advisorNames;
@@ -82,6 +85,7 @@ public class BeanFactoryAdvisorRetrievalHelper {
 		//遍历
 		for (String name : advisorNames) {
 			if (isEligibleBean(name)) {
+				//忽略正在创建的bean
 				if (this.beanFactory.isCurrentlyInCreation(name)) {
 					if (logger.isTraceEnabled()) {
 						logger.trace("Skipping currently created advisor '" + name + "'");

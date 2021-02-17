@@ -295,6 +295,7 @@ public abstract class AopUtils {
 	}
 
 	/**
+	 * 从candidateAdvisors中查找适合clazz使用的Advisor
 	 * Determine the sublist of the {@code candidateAdvisors} list
 	 * that is applicable to the given class.
 	 * @param candidateAdvisors the Advisors to evaluate
