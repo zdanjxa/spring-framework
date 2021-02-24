@@ -103,12 +103,13 @@ public abstract class AopProxyUtils {
 	}
 
 	/**
+	 * 判断一个advised真正需要代理的目标接口列表
 	 * Determine the complete set of interfaces to proxy for the given AOP configuration.
 	 * <p>This will always add the {@link Advised} interface unless the AdvisedSupport's
 	 * {@link AdvisedSupport#setOpaque "opaque"} flag is on. Always adds the
 	 * {@link org.springframework.aop.SpringProxy} marker interface.
 	 * @param advised the proxy config
-	 * @param decoratingProxy whether to expose the {@link DecoratingProxy} interface
+	 * @param decoratingProxy 代理对象是否需要实现DecoratingProxy接口 whether to expose the {@link DecoratingProxy} interface
 	 * @return the complete set of interfaces to proxy
 	 * @since 4.3
 	 * @see SpringProxy
@@ -116,7 +117,8 @@ public abstract class AopProxyUtils {
 	 * @see DecoratingProxy
 	 */
 	static Class<?>[] completeProxiedInterfaces(AdvisedSupport advised, boolean decoratingProxy) {
-		Class<?>[] specifiedInterfaces = advised.getProxiedInterfaces();
+		Class<?>[] specifiedInterfaces = advised.getProxiedInterfaces();//获取目标对象实现的接口
+		//为空时则重新判断是接口还是Proxy.class 然后得到对应实现的接口
 		if (specifiedInterfaces.length == 0) {
 			// No user-specified interfaces: check whether target class is an interface.
 			Class<?> targetClass = advised.getTargetClass();
@@ -130,9 +132,11 @@ public abstract class AopProxyUtils {
 				specifiedInterfaces = advised.getProxiedInterfaces();
 			}
 		}
-		boolean addSpringProxy = !advised.isInterfaceProxied(SpringProxy.class);
-		boolean addAdvised = !advised.isOpaque() && !advised.isInterfaceProxied(Advised.class);
-		boolean addDecoratingProxy = (decoratingProxy && !advised.isInterfaceProxied(DecoratingProxy.class));
+		boolean addSpringProxy = !advised.isInterfaceProxied(SpringProxy.class);//是否新增SpringProxy,
+		boolean addAdvised = !advised.isOpaque() && !advised.isInterfaceProxied(Advised.class);    //是否新增Adviced接口，
+		// 注意不是Advice通知接口。ProxyConfig#isOpaque方法用于返回由这个配置创建的代理对象是否应该避免被强制转换为Advised类型。还有一个条件和上面的方法一样，
+		// 同理，传入Advised.class判断目标对象是否已经实现该接口，如果没有实现则在代理对象中需要新增Advised，如果实现了则不必新增。
+		boolean addDecoratingProxy = (decoratingProxy && !advised.isInterfaceProxied(DecoratingProxy.class));    //是否新增DecoratingProxy接口，
 		int nonUserIfcCount = 0;
 		if (addSpringProxy) {
 			nonUserIfcCount++;
@@ -143,8 +147,10 @@ public abstract class AopProxyUtils {
 		if (addDecoratingProxy) {
 			nonUserIfcCount++;
 		}
+		//代理类的接口一共是目标对象的接口+上面三个接口SpringProxy、Advised、DecoratingProxy
 		Class<?>[] proxiedInterfaces = new Class<?>[specifiedInterfaces.length + nonUserIfcCount];
 		System.arraycopy(specifiedInterfaces, 0, proxiedInterfaces, 0, specifiedInterfaces.length);
+		//添加需要额外增加的相关接口
 		int index = specifiedInterfaces.length;
 		if (addSpringProxy) {
 			proxiedInterfaces[index] = SpringProxy.class;
