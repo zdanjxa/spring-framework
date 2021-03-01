@@ -31,6 +31,8 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
 /**
+ * 从类、方法上面获取事务注解"javax.transaction.Transactional"、"javax.ejb.TransactionAttribute"、"org.springframework.transaction.annotation.Transactional"解析
+ *
  * Implementation of the
  * {@link org.springframework.transaction.interceptor.TransactionAttributeSource}
  * interface for working with transaction metadata in JDK 1.5+ annotation format.

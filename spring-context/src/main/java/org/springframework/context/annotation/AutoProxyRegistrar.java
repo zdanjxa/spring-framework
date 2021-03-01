@@ -27,6 +27,8 @@ import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.type.AnnotationMetadata;
 
 /**
+ * 自定代理注册，在AdviceModeImportSelector的子类【TransactionManagementConfigurationSelector、AsyncConfigurationSelector、CachingConfigurationSelector】中都会添加调用,
+ * 会根据优先级决定是否覆盖(AopConfigUtils.APC_PRIORITY_LIST定义的顺序)
  * Registers an auto proxy creator against the current {@link BeanDefinitionRegistry}
  * as appropriate based on an {@code @Enable*} annotation having {@code mode} and
  * {@code proxyTargetClass} attributes set to the correct values.
@@ -57,19 +59,23 @@ public class AutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 	@Override
 	public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
 		boolean candidateFound = false;
+		//获取当前的所有注解
 		Set<String> annTypes = importingClassMetadata.getAnnotationTypes();
 		for (String annType : annTypes) {
 			AnnotationAttributes candidate = AnnotationConfigUtils.attributesFor(importingClassMetadata, annType);
 			if (candidate == null) {
 				continue;
 			}
+			//如果注册存在mode proxyTargetClass属性,并且是AdviceMode.class、Boolean.class
 			Object mode = candidate.get("mode");
 			Object proxyTargetClass = candidate.get("proxyTargetClass");
 			if (mode != null && proxyTargetClass != null && AdviceMode.class == mode.getClass() &&
 					Boolean.class == proxyTargetClass.getClass()) {
 				candidateFound = true;
+				//如果是jdk代理，则注册InfrastructureAdvisorAutoProxyCreator
 				if (mode == AdviceMode.PROXY) {
 					AopConfigUtils.registerAutoProxyCreatorIfNecessary(registry);
+					//如果强制cglib，则将InfrastructureAdvisorAutoProxyCreator的 proxyTargetClass 设置为true
 					if ((Boolean) proxyTargetClass) {
 						AopConfigUtils.forceAutoProxyCreatorToUseClassProxying(registry);
 						return;

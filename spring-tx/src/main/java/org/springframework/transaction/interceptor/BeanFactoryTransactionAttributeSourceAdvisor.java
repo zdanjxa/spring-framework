@@ -22,6 +22,7 @@ import org.springframework.aop.support.AbstractBeanFactoryPointcutAdvisor;
 import org.springframework.lang.Nullable;
 
 /**
+ * 被扫描的Advisor类。这个类会扫描被@Transactional注释的类的方法，并提供TransactionInterceptor，来代理被注释的方法
  * Advisor driven by a {@link TransactionAttributeSource}, used to include
  * a transaction advice bean for methods that are transactional.
  *
