@@ -47,6 +47,8 @@ import org.springframework.core.annotation.AliasFor;
 public @interface TransactionalEventListener {
 
 	/**
+	 * 对应事务的不同阶段；
+	 * 需要注意的是：AFTER_COMMIT + AFTER_COMPLETION是可以同时生效的;AFTER_ROLLBACK + AFTER_COMPLETION是可以同时生效的;
 	 * Phase to bind the handling of an event to.
 	 * <p>The default phase is {@link TransactionPhase#AFTER_COMMIT}.
 	 * <p>If no transaction is in progress, the event is not processed at
@@ -55,6 +57,7 @@ public @interface TransactionalEventListener {
 	TransactionPhase phase() default TransactionPhase.AFTER_COMMIT;
 
 	/**
+	 * 表示没有事务的时候，是否要执行官event false:不执行 true:执行
 	 * Whether the event should be processed if no transaction is running.
 	 */
 	boolean fallbackExecution() default false;
@@ -66,6 +69,7 @@ public @interface TransactionalEventListener {
 	Class<?>[] value() default {};
 
 	/**
+	 * 可以处理的事件类型(实际上方法入参指定具体的事件类型亦可达到类似效果)
 	 * The event classes that this listener handles.
 	 * <p>If this attribute is specified with a single value, the annotated
 	 * method may optionally accept a single parameter. However, if this
@@ -76,6 +80,7 @@ public @interface TransactionalEventListener {
 	Class<?>[] classes() default {};
 
 	/**
+	 * SpEL表达式的条件判断
 	 * Spring Expression Language (SpEL) attribute used for making the event
 	 * handling conditional.
 	 * <p>The default is {@code ""}, meaning the event is always handled.

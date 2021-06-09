@@ -27,7 +27,7 @@ import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.type.AnnotationMetadata;
 
 /**
- * 自定代理注册，在AdviceModeImportSelector的子类【TransactionManagementConfigurationSelector、AsyncConfigurationSelector、CachingConfigurationSelector】中都会添加调用,
+ * 自动代理注册，在AdviceModeImportSelector的子类【TransactionManagementConfigurationSelector、CachingConfigurationSelector】中都会添加调用,
  * 会根据优先级决定是否覆盖(AopConfigUtils.APC_PRIORITY_LIST定义的顺序)
  * Registers an auto proxy creator against the current {@link BeanDefinitionRegistry}
  * as appropriate based on an {@code @Enable*} annotation having {@code mode} and
