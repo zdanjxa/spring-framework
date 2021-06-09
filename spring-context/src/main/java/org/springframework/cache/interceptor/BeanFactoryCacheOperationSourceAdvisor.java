@@ -22,6 +22,10 @@ import org.springframework.aop.support.AbstractBeanFactoryPointcutAdvisor;
 import org.springframework.lang.Nullable;
 
 /**
+ * 实质就是Advisor类,内部包含`AnnotationCacheOperationSource`、`CacheInterceptor`,
+ * 在`BeanFactoryAdvisorRetrievalHelper#findAdvisorBeans()`中会被查找出来,然后再过滤匹配,
+ * 最终代理`@Cacheable` 、`@CacheEvict`、`@CachePut`、`@Caching`注释的类、方法;
+ *
  * Advisor driven by a {@link CacheOperationSource}, used to include a
  * cache advice bean for methods that are cacheable.
  *

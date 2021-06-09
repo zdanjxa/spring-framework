@@ -31,6 +31,9 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 /**
+ * 从类、方法(默认构造器只针对public方法)上面获取缓存注解`org.springframework.cache.annotation.Cacheable`、
+ * `org.springframework.cache.annotation.CacheEvict`、`org.springframework.cache.annotation.CachePut`、
+ * `org.springframework.cache.annotation.Caching`属性；
  * Implementation of the {@link org.springframework.cache.interceptor.CacheOperationSource
  * CacheOperationSource} interface for working with caching metadata in annotation format.
  *

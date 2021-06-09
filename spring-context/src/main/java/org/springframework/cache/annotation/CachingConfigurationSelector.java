@@ -50,8 +50,10 @@ public class CachingConfigurationSelector extends AdviceModeImportSelector<Enabl
 			"org.springframework.cache.aspectj.AspectJJCacheConfiguration";
 
 
+	/** 是否有Java标准缓存类 */
 	private static final boolean jsr107Present;
 
+	/** 是否有jcache的缓存实现类 */
 	private static final boolean jcacheImplPresent;
 
 	static {
@@ -62,6 +64,7 @@ public class CachingConfigurationSelector extends AdviceModeImportSelector<Enabl
 
 
 	/**
+	 *
 	 * Returns {@link ProxyCachingConfiguration} or {@code AspectJCachingConfiguration}
 	 * for {@code PROXY} and {@code ASPECTJ} values of {@link EnableCaching#mode()},
 	 * respectively. Potentially includes corresponding JCache configuration as well.
@@ -79,6 +82,7 @@ public class CachingConfigurationSelector extends AdviceModeImportSelector<Enabl
 	}
 
 	/**
+	 * AdviceMode#PROXY 模式需要引入的类
 	 * Return the imports to use if the {@link AdviceMode} is set to {@link AdviceMode#PROXY}.
 	 * <p>Take care of adding the necessary JSR-107 import if it is available.
 	 */
@@ -87,20 +91,21 @@ public class CachingConfigurationSelector extends AdviceModeImportSelector<Enabl
 		result.add(AutoProxyRegistrar.class.getName());
 		result.add(ProxyCachingConfiguration.class.getName());
 		if (jsr107Present && jcacheImplPresent) {
-			result.add(PROXY_JCACHE_CONFIGURATION_CLASS);
+			result.add(PROXY_JCACHE_CONFIGURATION_CLASS);//引入jcache实现
 		}
 		return StringUtils.toStringArray(result);
 	}
 
 	/**
+	 * AdviceMode#ASPECTJ 模式需要引入的类
 	 * Return the imports to use if the {@link AdviceMode} is set to {@link AdviceMode#ASPECTJ}.
 	 * <p>Take care of adding the necessary JSR-107 import if it is available.
 	 */
 	private String[] getAspectJImports() {
 		List<String> result = new ArrayList<>(2);
-		result.add(CACHE_ASPECT_CONFIGURATION_CLASS_NAME);
+		result.add(CACHE_ASPECT_CONFIGURATION_CLASS_NAME);//引入AspectJ实现
 		if (jsr107Present && jcacheImplPresent) {
-			result.add(JCACHE_ASPECT_CONFIGURATION_CLASS_NAME);
+			result.add(JCACHE_ASPECT_CONFIGURATION_CLASS_NAME);//引入jcache实现
 		}
 		return StringUtils.toStringArray(result);
 	}
