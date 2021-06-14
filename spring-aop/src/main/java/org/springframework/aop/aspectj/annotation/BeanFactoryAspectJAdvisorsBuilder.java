@@ -74,6 +74,11 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 
 
 	/**
+	 * 1.获取容器中所有 bean 的名称（beanName）
+	 * 2.遍历上一步获取到的 bean 名称数组，并获取当前 beanName 对应的 bean 类型（beanType）
+	 * 3.根据 beanType 判断当前 bean 是否是一个的 Aspect 注解类，若不是则不做任何处理
+	 * 4.调用 advisorFactory.getAdvisors 获取通知器
+	 *
 	 * Look for AspectJ-annotated aspect beans in the current bean factory,
 	 * and return to a list of Spring AOP Advisors representing them.
 	 * <p>Creates a Spring Advisor for each AspectJ advice method.
@@ -97,7 +102,7 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 						if (!isEligibleBean(beanName)) {
 							continue;
 						}
-						// 我们必须小心，不能急于实例化bean， 因为在这种清空下IoC容器会缓存他们但不是被织入增强器
+						// 我们必须小心，不能急于实例化bean， 因为在这种情况下IoC容器会缓存他们但不是被织入增强器
 						// (因为增强器可能还没创建，导致对象没有被代理)
 						Class<?> beanType = this.beanFactory.getType(beanName);
 						if (beanType == null) {
